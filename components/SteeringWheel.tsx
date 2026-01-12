@@ -3,9 +3,11 @@ import React, { useState, useEffect, useRef } from 'react';
 interface SteeringWheelProps {
   onSteer: (angle: number) => void;
   currentAngle: number;
+  onSteerStart: () => void;
+  onSteerEnd: () => void;
 }
 
-export const SteeringWheel: React.FC<SteeringWheelProps> = ({ onSteer, currentAngle }) => {
+export const SteeringWheel: React.FC<SteeringWheelProps> = ({ onSteer, currentAngle, onSteerStart, onSteerEnd }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [startAngle, setStartAngle] = useState(0);
   const wheelRef = useRef<HTMLDivElement>(null);
@@ -24,6 +26,7 @@ export const SteeringWheel: React.FC<SteeringWheelProps> = ({ onSteer, currentAn
 
   const handleStart = (clientX: number, clientY: number) => {
     setIsDragging(true);
+    onSteerStart();
     const angle = getAngle(clientX, clientY);
     setStartAngle(angle - currentAngle);
   };
@@ -42,7 +45,7 @@ export const SteeringWheel: React.FC<SteeringWheelProps> = ({ onSteer, currentAn
 
   const handleEnd = () => {
     setIsDragging(false);
-    // Auto-centering is now handled by the parent component's game loop
+    onSteerEnd();
   };
 
   // Global mouse/touch listeners to handle dragging outside the element

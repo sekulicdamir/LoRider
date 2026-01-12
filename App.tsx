@@ -50,6 +50,7 @@ const App: React.FC = () => {
   const scriptAddedRef = useRef(false);
   const lastVolumeDownPress = useRef(0);
   const isPreloadingRef = useRef(false);
+  const isUserSteeringRef = useRef(false);
 
   // Refs for control state
   const gasPressedRef = useRef(false);
@@ -285,14 +286,16 @@ const App: React.FC = () => {
       if (dt > 0.5 || dt <= 0) return;
 
       // 1. Steering Simulation
-      const autoCenterRate = 140;
-      if (Math.abs(steeringRef.current) > 0.5) {
-          const centeringAmount = autoCenterRate * dt;
-          steeringRef.current -= Math.sign(steeringRef.current) * centeringAmount;
-          setSteeringAngle(steeringRef.current);
-      } else if (steeringRef.current !== 0) {
-          steeringRef.current = 0;
-          setSteeringAngle(0);
+      if (!isUserSteeringRef.current) {
+        const autoCenterRate = 140;
+        if (Math.abs(steeringRef.current) > 0.5) {
+            const centeringAmount = autoCenterRate * dt;
+            steeringRef.current -= Math.sign(steeringRef.current) * centeringAmount;
+            setSteeringAngle(steeringRef.current);
+        } else if (steeringRef.current !== 0) {
+            steeringRef.current = 0;
+            setSteeringAngle(0);
+        }
       }
       
       // 2. Physics: Speed
@@ -476,7 +479,12 @@ const App: React.FC = () => {
                     <div className="absolute bottom-0 left-0 w-full h-full bg-gradient-to-t from-black via-black/80 to-transparent" />
                     <div className="absolute -bottom-48 left-1/2 -translate-x-1/2 w-[30rem] h-[30rem] bg-gray-900/95 rounded-t-full border-t-8 border-gray-800 shadow-2xl" style={{boxShadow: '0 -10px 30px rgba(0,0,0,0.5)'}}/>
                     <div className="absolute bottom-[-9rem] md:bottom-[-10rem] left-1/2 -translate-x-1/2">
-                        <SteeringWheel onSteer={handleSteer} currentAngle={steeringAngle} />
+                        <SteeringWheel 
+                          onSteer={handleSteer} 
+                          currentAngle={steeringAngle}
+                          onSteerStart={() => isUserSteeringRef.current = true}
+                          onSteerEnd={() => isUserSteeringRef.current = false}
+                        />
                     </div>
                     {handbrakeEngaged && (
                         <div className="absolute bottom-6 right-6 flex items-center gap-2 bg-red-600/90 text-white font-bold px-3 py-2 rounded-lg border-2 border-red-400 animate-pulse pointer-events-auto">
