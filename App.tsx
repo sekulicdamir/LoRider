@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GameMode, GameLocation, GoogleMapsLink, StreetViewData } from './types';
-import { MAX_SPEED, ACCELERATION_RATE, BRAKING_RATE, FRICTION_RATE } from './constants';
+import { MAX_SPEED, ACCELERATION_RATE, BRAKING_RATE, FRICTION_RATE, HANDBRAKE_RATE } from './constants';
 import { MainMenu } from './components/MainMenu';
 import { SteeringWheel } from './components/SteeringWheel';
 import { Dashboard } from './components/Dashboard';
 import { getUserProfile, updateDistance, getApiKey, saveApiKey } from './services/storageService';
-import { Key } from 'lucide-react';
+import { Key, AlertTriangle } from 'lucide-react';
 
 // Add global declaration for google maps
 declare global {
@@ -32,6 +32,7 @@ const App: React.FC = () => {
   // Controls State
   const [gasPressed, setGasPressed] = useState(false);
   const [brakePressed, setBrakePressed] = useState(false);
+  const [handbrakeEngaged, setHandbrakeEngaged] = useState(false);
 
   // Street View State
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -45,6 +46,7 @@ const App: React.FC = () => {
   const lastFrameTime = useRef(0);
   const moveProgress = useRef(0); // 0 to 1, progress to next node
   const scriptAddedRef = useRef(false);
+  const lastVolumeDownPress = useRef(0);
 
   // User Data
   const [userProfile, setUserProfile] = useState(getUserProfile());
@@ -188,6 +190,7 @@ const App: React.FC = () => {
         setHeading(startHeading);
         headingRef.current = startHeading;
         setGameMode(GameMode.DRIVING);
+        lastFrameTime.current = performance.now();
       }
     });
   };
@@ -204,12 +207,41 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Standard keyboard controls
       if (e.key === 'ArrowUp' || e.key === 'w') setGasPressed(true);
       if (e.key === 'ArrowDown' || e.key === 's') setBrakePressed(true);
+
+      // Volume button controls for mobile
+      // Note: Browser/device support for these keys may vary.
+      if (e.key === 'AudioVolumeUp') {
+        e.preventDefault();
+        setGasPressed(true);
+        setHandbrakeEngaged(false); // Gas disengages handbrake
+      }
+      if (e.key === 'AudioVolumeDown') {
+        e.preventDefault();
+        setBrakePressed(true);
+        
+        // Handbrake double-press logic
+        const now = Date.now();
+        if (now - lastVolumeDownPress.current < 300) { // 300ms threshold
+          setHandbrakeEngaged(true);
+        }
+        lastVolumeDownPress.current = now;
+      }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === 'ArrowUp' || e.key === 'w') setGasPressed(false);
       if (e.key === 'ArrowDown' || e.key === 's') setBrakePressed(false);
+
+      if (e.key === 'AudioVolumeUp') {
+        e.preventDefault();
+        setGasPressed(false);
+      }
+      if (e.key === 'AudioVolumeDown') {
+        e.preventDefault();
+        setBrakePressed(false);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -239,7 +271,9 @@ const App: React.FC = () => {
     // 1. Physics: Speed
     let currentSpeed = speedRef.current;
     
-    if (gasPressed) {
+    if (handbrakeEngaged) {
+      currentSpeed -= HANDBRAKE_RATE * (60 * dt);
+    } else if (gasPressed) {
       currentSpeed += ACCELERATION_RATE * (60 * dt); 
     } else if (brakePressed) {
       currentSpeed -= BRAKING_RATE * (60 * dt);
@@ -336,6 +370,7 @@ const App: React.FC = () => {
         }
     } else {
         setGameMode(GameMode.DRIVING);
+        lastFrameTime.current = performance.now();
         if (streetViewRef.current) {
             streetViewRef.current.setOptions({
                 disableDefaultUI: true,
@@ -452,34 +487,27 @@ const App: React.FC = () => {
             />
 
             {gameMode === GameMode.DRIVING && (
-                <div className="absolute bottom-0 w-full h-[35vh] z-30 flex flex-col justify-end">
-                    
-                    <div className="absolute top-0 w-full flex justify-between px-8 pointer-events-auto">
-                        <button 
-                            className={`w-20 h-32 rounded-lg border-2 border-white/20 transition-all ${brakePressed ? 'bg-red-500/80 translate-y-2' : 'bg-black/40 backdrop-blur'}`}
-                            onTouchStart={() => setBrakePressed(true)}
-                            onTouchEnd={() => setBrakePressed(false)}
-                            onMouseDown={() => setBrakePressed(true)}
-                            onMouseUp={() => setBrakePressed(false)}
-                        >
-                            <span className="text-xs font-bold text-white uppercase rotate-90 block mt-10">Brake</span>
-                        </button>
+              <div className="absolute bottom-0 left-0 w-full h-[25vh] z-30 pointer-events-none overflow-hidden">
+                  {/* Dashboard shape */}
+                  <div className="absolute bottom-0 left-0 w-full h-full bg-gradient-to-t from-black via-black/80 to-transparent" />
+                  <div 
+                    className="absolute -bottom-48 left-1/2 -translate-x-1/2 w-[30rem] h-[30rem] bg-gray-900/95 rounded-t-full border-t-8 border-gray-800 shadow-2xl" 
+                    style={{boxShadow: '0 -10px 30px rgba(0,0,0,0.5)'}}
+                  />
 
-                        <button 
-                            className={`w-20 h-40 -mt-8 rounded-lg border-2 border-white/20 transition-all ${gasPressed ? 'bg-green-500/80 translate-y-2' : 'bg-black/40 backdrop-blur'}`}
-                            onTouchStart={() => setGasPressed(true)}
-                            onTouchEnd={() => setGasPressed(false)}
-                            onMouseDown={() => setGasPressed(true)}
-                            onMouseUp={() => setGasPressed(false)}
-                        >
-                             <span className="text-xs font-bold text-white uppercase rotate-90 block mt-14">Gas</span>
-                        </button>
-                    </div>
-
-                    <div className="relative w-full h-full flex justify-center items-end pb-8">
-                         <SteeringWheel onSteer={handleSteer} currentAngle={steeringAngle} />
-                    </div>
-                </div>
+                  {/* Steering Wheel */}
+                  <div className="absolute bottom-[-9rem] md:bottom-[-10rem] left-1/2 -translate-x-1/2">
+                       <SteeringWheel onSteer={handleSteer} currentAngle={steeringAngle} />
+                  </div>
+                  
+                  {/* Handbrake Indicator */}
+                  {handbrakeEngaged && (
+                      <div className="absolute bottom-6 right-6 flex items-center gap-2 bg-red-600/90 text-white font-bold px-3 py-2 rounded-lg border-2 border-red-400 animate-pulse pointer-events-auto">
+                          <AlertTriangle size={20} />
+                          <span className="text-sm tracking-wider">HANDBRAKE</span>
+                      </div>
+                  )}
+              </div>
             )}
         </>
       )}

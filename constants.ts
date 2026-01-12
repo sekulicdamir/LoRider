@@ -5,6 +5,7 @@ export const ACCELERATION_RATE = 2.5;
 export const BRAKING_RATE = 5.0;
 export const FRICTION_RATE = 0.8;
 export const STEERING_SENSITIVITY = 1.5;
+export const HANDBRAKE_RATE = 20.0;
 
 // Locations to choose from
 export const PRESET_LOCATIONS: GameLocation[] = [
