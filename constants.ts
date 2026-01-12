@@ -1,11 +1,14 @@
 import { GameLocation } from './types';
 
 export const MAX_SPEED = 120; // km/h
-export const ACCELERATION_RATE = 2.5;
-export const BRAKING_RATE = 5.0;
-export const FRICTION_RATE = 0.8;
+
+// Physics constants are now per-second for frame-rate independence
+export const ACCELERATION_RATE = 12; // km/h per second
+export const BRAKING_RATE = 25;    // km/h per second
+export const FRICTION_RATE = 3;      // km/h per second, natural deceleration
 export const STEERING_SENSITIVITY = 1.5;
-export const HANDBRAKE_RATE = 20.0;
+export const HANDBRAKE_RATE = 80;    // km/h per second, for sharp stops
+
 
 // Locations to choose from
 export const PRESET_LOCATIONS: GameLocation[] = [

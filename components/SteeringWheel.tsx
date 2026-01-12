@@ -42,7 +42,7 @@ export const SteeringWheel: React.FC<SteeringWheelProps> = ({ onSteer, currentAn
 
   const handleEnd = () => {
     setIsDragging(false);
-    // Auto-center effect could be added here in the parent logic
+    // Auto-centering is now handled by the parent component's game loop
   };
 
   // Global mouse/touch listeners to handle dragging outside the element
@@ -66,7 +66,7 @@ export const SteeringWheel: React.FC<SteeringWheelProps> = ({ onSteer, currentAn
       window.removeEventListener('touchend', onTouchEnd);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDragging]); // Dependencies managed carefully to avoid stale state in event handlers if not using refs
+  }, [isDragging]);
 
   return (
     <div className="relative flex justify-center items-center w-full h-full pointer-events-auto">
@@ -74,7 +74,7 @@ export const SteeringWheel: React.FC<SteeringWheelProps> = ({ onSteer, currentAn
         ref={wheelRef}
         onMouseDown={(e) => handleStart(e.clientX, e.clientY)}
         onTouchStart={(e) => handleStart(e.touches[0].clientX, e.touches[0].clientY)}
-        style={{ transform: `rotate(${currentAngle}deg)`, transition: isDragging ? 'none' : 'transform 0.2s ease-out' }}
+        style={{ transform: `rotate(${currentAngle}deg)` }}
         className="w-64 h-64 md:w-80 md:h-80 rounded-full border-8 border-gray-800 bg-gray-900/90 shadow-2xl flex items-center justify-center cursor-grab active:cursor-grabbing backdrop-blur-md"
       >
         {/* Inner Hub */}
