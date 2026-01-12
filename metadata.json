@@ -1,0 +1,7 @@
+{
+  "name": "LoRider",
+  "description": "A mobile-first, infinite driving game powered by Google Street View. Explore the world from your cockpit.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
